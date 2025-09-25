@@ -9,29 +9,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { UserPlus, ShoppingCart, DollarSign, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthForm } from '@/components/AuthForm';
 
 const BuyerPortal = () => {
   const { toast } = useToast();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
+  const { user, loading, signOut } = useAuth();
 
-  const handleLogin = (event: React.FormEvent) => {
-    event.preventDefault();
-    setIsLoggedIn(true);
-    toast({
-      title: "Login successful!",
-      description: "Welcome to the Buyer Portal",
-    });
-  };
-
-  const handleRegister = (event: React.FormEvent) => {
-    event.preventDefault();
-    setIsLoggedIn(true);
-    setIsRegistering(false);
-    toast({
-      title: "Registration successful!",
-      description: "Your buyer account has been created",
-    });
+  const handleLogout = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        title: "Logout failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Logged out successfully",
+        description: "See you later!",
+      });
+    }
   };
 
   const handleRequirementSubmit = (event: React.FormEvent) => {
@@ -42,71 +40,24 @@ const BuyerPortal = () => {
     });
   };
 
-  if (!isLoggedIn) {
+  if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto">
-          <div className="mb-8 text-center">
-            <h1 className="text-4xl font-bold text-foreground mb-2">Buyer Portal</h1>
-            <p className="text-muted-foreground">Connect with farmers and source quality crops</p>
-          </div>
-
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>{isRegistering ? 'Create Account' : 'Login'}</CardTitle>
-              <CardDescription>
-                {isRegistering 
-                  ? 'Join our marketplace to connect with farmers' 
-                  : 'Access your buyer dashboard'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={isRegistering ? handleRegister : handleLogin} className="space-y-4">
-                {isRegistering && (
-                  <>
-                    <div>
-                      <Label htmlFor="name">Full Name</Label>
-                      <Input id="name" type="text" required className="mt-2" />
-                    </div>
-                    <div>
-                      <Label htmlFor="company">Company Name</Label>
-                      <Input id="company" type="text" required className="mt-2" />
-                    </div>
-                    <div>
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input id="phone" type="tel" required className="mt-2" />
-                    </div>
-                  </>
-                )}
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" required className="mt-2" />
-                </div>
-                <div>
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" required className="mt-2" />
-                </div>
-                <Button type="submit" className="w-full bg-gradient-growth text-white">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  {isRegistering ? 'Create Account' : 'Login'}
-                </Button>
-              </form>
-              
-              <div className="mt-4 text-center">
-                <button
-                  type="button"
-                  onClick={() => setIsRegistering(!isRegistering)}
-                  className="text-primary hover:underline text-sm"
-                >
-                  {isRegistering 
-                    ? 'Already have an account? Login' 
-                    : "Don't have an account? Register"}
-                </button>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="container mx-auto px-4 py-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <AuthForm 
+        userType="buyer"
+        title="Buyer Portal"
+        description="Connect with farmers and source quality crops"
+      />
     );
   }
 
@@ -119,7 +70,7 @@ const BuyerPortal = () => {
         </div>
         <Button 
           variant="outline" 
-          onClick={() => setIsLoggedIn(false)}
+          onClick={handleLogout}
           className="text-primary border-primary hover:bg-primary/10"
         >
           Logout
