@@ -6,12 +6,33 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Thermometer, Droplets, Eye, Calendar, AlertTriangle, Sprout } from 'lucide-react';
+import { Thermometer, Droplets, Eye, Calendar, AlertTriangle, Sprout, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const FarmerPortal = () => {
   const { toast } = useToast();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const handleLogin = (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsLoggedIn(true);
+    toast({
+      title: "Login successful!",
+      description: "Welcome to the Farmer Portal",
+    });
+  };
+
+  const handleRegister = (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsLoggedIn(true);
+    setIsRegistering(false);
+    toast({
+      title: "Registration successful!",
+      description: "Your farmer account has been created",
+    });
+  };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -41,11 +62,96 @@ const FarmerPortal = () => {
     rainfall: '15mm expected'
   };
 
+  if (!isLoggedIn) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-md mx-auto">
+          <div className="mb-8 text-center">
+            <h1 className="text-4xl font-bold text-foreground mb-2">Farmer Portal</h1>
+            <p className="text-muted-foreground">Access AI-powered farming insights and tools</p>
+          </div>
+
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle>{isRegistering ? 'Create Account' : 'Login'}</CardTitle>
+              <CardDescription>
+                {isRegistering 
+                  ? 'Join our platform to get smart farming insights' 
+                  : 'Access your farmer dashboard'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={isRegistering ? handleRegister : handleLogin} className="space-y-4">
+                {isRegistering && (
+                  <>
+                    <div>
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input id="name" type="text" required className="mt-2" />
+                    </div>
+                    <div>
+                      <Label htmlFor="farm-name">Farm Name</Label>
+                      <Input id="farm-name" type="text" required className="mt-2" />
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input id="phone" type="tel" required className="mt-2" />
+                    </div>
+                    <div>
+                      <Label htmlFor="location">Farm Location</Label>
+                      <Input id="location" type="text" placeholder="City, State" required className="mt-2" />
+                    </div>
+                    <div>
+                      <Label htmlFor="farm-size">Farm Size (acres)</Label>
+                      <Input id="farm-size" type="number" required className="mt-2" />
+                    </div>
+                  </>
+                )}
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" required className="mt-2" />
+                </div>
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <Input id="password" type="password" required className="mt-2" />
+                </div>
+                <Button type="submit" className="w-full bg-gradient-growth text-white">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  {isRegistering ? 'Create Account' : 'Login'}
+                </Button>
+              </form>
+              
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsRegistering(!isRegistering)}
+                  className="text-primary hover:underline text-sm"
+                >
+                  {isRegistering 
+                    ? 'Already have an account? Login' 
+                    : "Don't have an account? Register"}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-foreground mb-2">Farmer Portal</h1>
-        <p className="text-muted-foreground text-lg">Monitor your fields and get AI-powered farming insights</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-4xl font-bold text-foreground mb-2">Farmer Dashboard</h1>
+          <p className="text-muted-foreground text-lg">Monitor your fields and get AI-powered farming insights</p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={() => setIsLoggedIn(false)}
+          className="text-primary border-primary hover:bg-primary/10"
+        >
+          Logout
+        </Button>
       </div>
 
       <Tabs defaultValue="dashboard" className="space-y-6">
