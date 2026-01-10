@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
+import { AuthenticatedRoute } from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import FarmerPortal from "./pages/FarmerPortal";
 import BuyerPortal from "./pages/BuyerPortal";
@@ -24,8 +25,16 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/farmer" element={<FarmerPortal />} />
             <Route path="/buyer" element={<BuyerPortal />} />
-            <Route path="/marketplace" element={<Marketplace />} />
-            <Route path="/assistant" element={<AIAssistant />} />
+            <Route path="/marketplace" element={
+              <AuthenticatedRoute>
+                <Marketplace />
+              </AuthenticatedRoute>
+            } />
+            <Route path="/assistant" element={
+              <AuthenticatedRoute>
+                <AIAssistant />
+              </AuthenticatedRoute>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

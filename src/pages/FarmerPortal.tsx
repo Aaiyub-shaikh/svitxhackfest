@@ -9,12 +9,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Thermometer, Droplets, Eye, Calendar, AlertTriangle, Sprout } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { predictDisease } from '@/integrations/ml/api';
+import type { PredictionResponse } from '@/integrations/ml/types';
+import StreamlitEmbed from '@/components/StreamlitEmbed';
 import { AuthForm } from '@/components/AuthForm';
 
 const FarmerPortal = () => {
   const { toast } = useToast();
   const { user, loading, signOut } = useAuth();
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [analysis, setAnalysis] = useState<PredictionResponse | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
 
   const handleLogout = async () => {
     const { error } = await signOut();
@@ -32,14 +37,38 @@ const FarmerPortal = () => {
     }
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setImageFile(file);
+      setAnalysis(null);
       toast({
-        title: "Image uploaded successfully",
-        description: "AI analysis will begin shortly...",
+        title: "Image uploaded",
+        description: "Running disease detection...",
       });
+      await analyzeImage(file);
+    }
+  };
+
+  const analyzeImage = async (file: File) => {
+    try {
+      setAnalysisLoading(true);
+      const result = await predictDisease(file);
+      setAnalysis(result);
+      const pretty = result.predicted_label.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+      toast({
+        title: "Analysis complete",
+        description: `Detected: ${pretty}`,
+      });
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Analysis failed",
+        description: err?.message || "Unable to analyze the image",
+        variant: "destructive",
+      });
+    } finally {
+      setAnalysisLoading(false);
     }
   };
 
@@ -60,7 +89,7 @@ const FarmerPortal = () => {
     rainfall: '15mm expected'
   };
 
-  if (loading) {
+if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 flex items-center justify-center">
         <div className="text-center">
@@ -91,7 +120,7 @@ const FarmerPortal = () => {
         <Button 
           variant="outline" 
           onClick={handleLogout}
-          className="text-primary border-primary hover:bg-primary/10"
+          className="text-primary border-primary hover:bg-primary/10 hover-lift"
         >
           Logout
         </Button>
@@ -216,34 +245,96 @@ const FarmerPortal = () => {
                 <div className="space-y-4">
                   <div className="p-4 border border-border rounded-lg">
                     <h3 className="font-semibold mb-2">Uploaded: {imageFile.name}</h3>
-                    <div className="bg-gradient-growth h-2 rounded-full animate-pulse">
-                      <div className="bg-white h-2 rounded-full w-1/3"></div>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-2">Analyzing image...</p>
+                    {analysisLoading ? (
+                      <>
+                        <div className="bg-gradient-growth h-2 rounded-full animate-pulse">
+                          <div className="bg-white h-2 rounded-full w-1/3"></div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2">Analyzing image...</p>
+                      </>
+                    ) : analysis ? (
+                      <p className="text-sm text-success mt-2">Analysis complete</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-2">Ready</p>
+                    )}
                   </div>
 
-                  <Card className="bg-success/5 border-success/20">
-                    <CardHeader>
-                      <CardTitle className="text-success flex items-center gap-2">
-                        <AlertTriangle className="h-5 w-5" />
-                        AI Analysis Result
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <p><strong>Detection:</strong> Healthy crop detected</p>
-                        <p><strong>Confidence:</strong> 94%</p>
-                        <p><strong>Recommendation:</strong> Continue current care routine. Monitor for any changes in leaf color or texture.</p>
-                        <div className="p-3 bg-success/10 rounded-lg">
-                          <p className="text-sm text-success">
-                            ✓ No immediate treatment required. Keep monitoring regularly.
-                          </p>
+                  {analysis && (
+                    <Card className="bg-success/5 border-success/20">
+                      <CardHeader>
+                        <CardTitle className="text-success flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5" />
+                          AI Analysis Result
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-lg font-semibold">
+                              Detection: {analysis.predicted_label.replace(/_/g, ' ').replace(/\s+/g, ' ').trim()}
+                            </p>
+                            {analysis.topk && (
+                              <p className="text-sm text-muted-foreground">
+                                Top predictions: {analysis.topk.map(t => `${t.label.split('_').join(' ')} (${(t.confidence*100).toFixed(1)}%)`).join(', ')}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="font-medium mb-1">Description</p>
+                              <p className="text-sm text-foreground bg-muted/50 p-3 rounded-lg">
+                                {analysis.info.description}
+                              </p>
+                              <p className="font-medium mt-4 mb-1">Symptoms</p>
+                              <p className="text-sm text-foreground bg-muted/50 p-3 rounded-lg">
+                                {analysis.info.symptoms}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-medium mb-1">Recommendations</p>
+                              <ul className="list-disc list-inside text-sm bg-muted/50 p-3 rounded-lg space-y-1">
+                                {analysis.info.recommendations.map((rec, i) => (
+                                  <li key={i}>{rec}</li>
+                                ))}
+                              </ul>
+                              <p className="font-medium mt-4 mb-1">Pesticides</p>
+                              <ul className="list-disc list-inside text-sm bg-muted/50 p-3 rounded-lg space-y-1">
+                                {analysis.info.pesticides.map((p, i) => (
+                                  <li key={i}>{p}</li>
+                                ))}
+                              </ul>
+                              <div className="p-3 bg-success/10 rounded-lg mt-4">
+                                <p className="text-sm text-success">
+                                  Organic: {analysis.info.organic_treatment}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               )}
+
+              {/* Full Streamlit app embedded (uses VITE_STREAMLIT_URL) */}
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Prefer the full Streamlit interface? It’s embedded below. You can also open it directly in a new tab.
+                </p>
+                <div className="flex gap-2">
+                  <a
+                    href={(import.meta.env.VITE_STREAMLIT_URL as string) || 'http://localhost:8501'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary hover:underline text-sm"
+                  >
+                    Open Streamlit in new tab
+                  </a>
+                </div>
+                <StreamlitEmbed />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -306,7 +397,7 @@ const FarmerPortal = () => {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-gradient-growth text-white shadow-success">
+                <Button type="submit" className="w-full bg-gradient-primary text-white shadow-primary hover:shadow-success transition-smooth hover-lift">
                   <Calendar className="w-4 h-4 mr-2" />
                   Generate Irrigation Schedule
                 </Button>

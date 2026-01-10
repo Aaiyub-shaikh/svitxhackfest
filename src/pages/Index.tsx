@@ -2,9 +2,19 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Leaf, Users, ShoppingCart, Bot, TrendingUp, Shield, Zap } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthSelection } from '@/components/AuthSelection';
 import heroImage from '@/assets/hero-farming.jpg';
 
 const Index = () => {
+  const { user } = useAuth();
+
+  // Show auth selection for unauthenticated users
+  if (!user) {
+    return <AuthSelection />;
+  }
+
+  // Show main landing page for authenticated users
   const features = [
     {
       icon: Leaf,
@@ -54,14 +64,14 @@ const Index = () => {
             alt="Smart farming with IoT technology" 
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-earth-sky/80"></div>
+          <div className="absolute inset-0 bg-gradient-earth/80"></div>
         </div>
         
         <div className="relative container mx-auto px-4 py-24 text-center">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
               Smart Farming
-              <span className="block bg-gradient-harvest bg-clip-text text-transparent">
+              <span className="block bg-gradient-warm bg-clip-text text-transparent">
                 Advisory Platform
               </span>
             </h1>
@@ -70,7 +80,7 @@ const Index = () => {
               for sustainable and profitable agriculture.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="bg-white text-primary hover:bg-white/90 shadow-glow">
+              <Button asChild size="lg" className="bg-white text-primary hover:bg-white/90 shadow-glow hover-lift">
                 <Link to="/farmer" className="flex items-center gap-2">
                   <Leaf className="w-5 h-5" />
                   Farmer Portal
@@ -104,9 +114,9 @@ const Index = () => {
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <Card key={index} className="shadow-card hover:shadow-glow transition-all duration-300 group">
+                <Card key={index} className="shadow-primary hover:shadow-glow hover-lift border-0 group">
                   <CardHeader>
-                    <div className="w-12 h-12 bg-gradient-growth rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-bounce">
                       <Icon className="w-6 h-6 text-white" />
                     </div>
                     <CardTitle className="text-xl text-foreground">{feature.title}</CardTitle>
@@ -115,7 +125,7 @@ const Index = () => {
                     <CardDescription className="text-muted-foreground mb-4">
                       {feature.description}
                     </CardDescription>
-                    <Button asChild variant="outline" className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <Button asChild variant="outline" className="group-hover:bg-primary group-hover:text-primary-foreground transition-smooth hover:shadow-primary">
                       <Link to={feature.link} className="flex items-center gap-2">
                         Learn More
                         <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -130,7 +140,7 @@ const Index = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-gradient-earth-sky">
+      <section className="py-20 bg-gradient-sky">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center text-white">
             <div>
@@ -164,7 +174,7 @@ const Index = () => {
               Join thousands of farmers already using our platform to increase yields and profits
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="bg-gradient-growth text-white shadow-success">
+              <Button asChild size="lg" className="bg-gradient-success text-white shadow-success hover-lift">
                 <Link to="/farmer" className="flex items-center gap-2">
                   <Leaf className="w-5 h-5" />
                   Start as Farmer

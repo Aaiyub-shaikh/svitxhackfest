@@ -40,7 +40,7 @@ const BuyerPortal = () => {
     });
   };
 
-  if (loading) {
+if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 flex items-center justify-center">
         <div className="text-center">
@@ -71,7 +71,7 @@ const BuyerPortal = () => {
         <Button 
           variant="outline" 
           onClick={handleLogout}
-          className="text-primary border-primary hover:bg-primary/10"
+          className="text-primary border-primary hover:bg-primary/10 hover-lift"
         >
           Logout
         </Button>
@@ -179,7 +179,7 @@ const BuyerPortal = () => {
                   />
                 </div>
 
-                <Button type="submit" className="w-full bg-gradient-growth text-white shadow-success">
+                <Button type="submit" className="w-full bg-gradient-primary text-white shadow-primary hover:shadow-success transition-smooth hover-lift">
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Post Requirement
                 </Button>

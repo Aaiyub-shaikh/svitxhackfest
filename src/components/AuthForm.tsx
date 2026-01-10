@@ -91,7 +91,7 @@ export const AuthForm = ({ userType, title, description }: AuthFormProps) => {
           <p className="text-muted-foreground">{description}</p>
         </div>
 
-        <Card className="shadow-card">
+        <Card className="shadow-primary hover-lift border-0">
           <CardHeader>
             <CardTitle>{isRegistering ? 'Create Account' : 'Login'}</CardTitle>
             <CardDescription>
@@ -146,7 +146,7 @@ export const AuthForm = ({ userType, title, description }: AuthFormProps) => {
               </div>
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-growth text-white"
+                className="w-full bg-gradient-primary text-white shadow-primary hover:shadow-success transition-smooth"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -164,7 +164,7 @@ export const AuthForm = ({ userType, title, description }: AuthFormProps) => {
               <button
                 type="button"
                 onClick={() => setIsRegistering(!isRegistering)}
-                className="text-primary hover:underline text-sm"
+                className="text-primary hover:text-accent transition-gentle hover:underline text-sm"
                 disabled={isLoading}
               >
                 {isRegistering 
