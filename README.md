@@ -60,6 +60,53 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+---
+
+## Smart Farming Advisory Platform (Frontend)
+
+This app implements a responsive, mobile-first interface for two roles: Farmers and Buyers.
+
+Key features
+- Farmer Portal
+  - IoT Dashboard (temperature, humidity, soil moisture, soil type)
+  - Weather forecast and rainfall prediction (OpenWeatherMap)
+  - AI disease detection (image upload → ML API) + Streamlit embed
+  - Smart Irrigation schedule generator + optional SMS (simulated)
+- Buyer Portal
+  - Auth (Supabase) and profile capture
+  - Post crop requirements (localStorage demo persistence)
+  - Personal dashboard (My Requirements)
+- Marketplace
+  - Farmers can browse buyer requirements and contact buyers
+- AI Assistant
+  - Chat UI with voice input/output (Web Speech API)
+  - Multiple Indian languages (en-IN, hi-IN, pa-IN, gu-IN, mr-IN, ta-IN, te-IN, bn-IN)
+
+### Environment variables
+Create a .env.local file (copy from .env.example):
+
+- VITE_ML_API_URL: Base URL of your disease detection API (e.g., FastAPI)
+- VITE_STREAMLIT_URL: URL of your Streamlit disease UI (optional)
+- VITE_OPENWEATHER_API_KEY: OpenWeatherMap API key for live weather
+
+### Running locally
+
+```sh
+# From the repo root
+npm install
+npm run dev
+```
+
+Then open the printed local URL in your browser.
+
+Notes
+- Voice features require a Chromium-based browser (for webkitSpeechRecognition). TTS works with most modern browsers.
+- Weather requires VITE_OPENWEATHER_API_KEY. Without it, UI will display a hint.
+- SMS is simulated on the frontend. Wire to your backend (e.g., Twilio) if needed.
+- Buyer requirements are stored in localStorage for demo. Replace with real persistence (e.g., Supabase table) in production.
+
+---
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/186fd267-6ed1-428c-916c-1af7cb58d805) and click on Share -> Publish.

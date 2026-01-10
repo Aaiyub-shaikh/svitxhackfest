@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,10 +12,36 @@ import { UserPlus, ShoppingCart, DollarSign, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthForm } from '@/components/AuthForm';
+import { addRequirement, getRequirementsByUser, BuyerRequirement, CropOption } from '@/services/marketplace';
 
 const BuyerPortal = () => {
   const { toast } = useToast();
   const { user, loading, signOut } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Force re-render when user state changes or route changes
+  useEffect(() => {
+    // This ensures the component re-renders when navigating to this route
+  }, [user, location.pathname]);
+
+  const [crop, setCrop] = useState<CropOption | ''>('');
+  const [quantity, setQuantity] = useState<string>('');
+  const [priceRange, setPriceRange] = useState<string>('');
+  const [preferredLocation, setPreferredLocation] = useState<string>('');
+  const [deliveryDate, setDeliveryDate] = useState<string>('');
+  const [contactPhone, setContactPhone] = useState<string>('');
+  const [additional, setAdditional] = useState<string>('');
+  const [myRequirements, setMyRequirements] = useState<BuyerRequirement[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      (async () => {
+        const list = await getRequirementsByUser(user.id);
+        setMyRequirements(list);
+      })();
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     const { error } = await signOut();
@@ -34,9 +61,56 @@ const BuyerPortal = () => {
 
   const handleRequirementSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    if (!user) return;
+    if (!crop || !quantity || !priceRange || !preferredLocation || !deliveryDate || !contactPhone) {
+      toast({ title: 'Missing details', description: 'Please fill all required fields', variant: 'destructive' });
+      return;
+    }
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+    const item: BuyerRequirement = {
+      id,
+      buyerUserId: user.id,
+      buyerName: (user.user_metadata?.company_name as string) || user.email || 'Buyer',
+      crop: crop as CropOption,
+      quantityTons: parseFloat(quantity),
+      priceRange,
+      location: preferredLocation,
+      deliveryDateISO: deliveryDate,
+      contactPhone,
+      email: user.email || undefined,
+      description: additional || undefined,
+      status: 'Active',
+      postedDateISO: new Date().toISOString(),
+    };
+    (async () => {
+      try {
+        const created = await addRequirement(item as BuyerRequirement);
+        // Update local UI with created item (map DB shape if necessary)
+        const uiItem: BuyerRequirement = {
+          id: (created && created.id) ? created.id.toString() : item.id,
+          buyerUserId: (created && created.buyer_id) ? created.buyer_id.toString() : item.buyerUserId,
+          buyerName: (created && created.buyer_email) ? created.buyer_email : item.buyerName,
+          crop: item.crop,
+          quantityTons: item.quantityTons,
+          priceRange: item.priceRange,
+          location: item.location,
+          deliveryDateISO: (created && created.delivery_date) ? new Date(created.delivery_date).toISOString() : item.deliveryDateISO,
+          contactPhone: item.contactPhone,
+          email: (created && created.buyer_email) ? created.buyer_email : item.email,
+          description: item.description,
+          status: 'Active',
+          postedDateISO: (created && created.created_at) ? created.created_at : item.postedDateISO,
+        };
+        setMyRequirements(prev => [uiItem, ...prev]);
+      } catch (err) {
+        setMyRequirements(prev => [item, ...prev]);
+      }
+    })();
+    // Reset form
+    setCrop(''); setQuantity(''); setPriceRange(''); setPreferredLocation(''); setDeliveryDate(''); setContactPhone(''); setAdditional('');
     toast({
-      title: "Requirement posted!",
-      description: "Farmers can now see your crop requirements",
+      title: 'Requirement posted!',
+      description: 'Farmers can now see your crop requirements',
     });
   };
 
@@ -99,7 +173,7 @@ if (loading) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <Label htmlFor="crop-type">Crop Type</Label>
-                    <Select>
+                    <Select value={crop} onValueChange={(v) => setCrop(v as CropOption)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select crop type" />
                       </SelectTrigger>
@@ -119,6 +193,8 @@ if (loading) {
                     <Input
                       id="quantity"
                       type="number"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
                       placeholder="e.g., 50"
                       className="mt-2"
                       required
@@ -130,6 +206,8 @@ if (loading) {
                     <Input
                       id="price-range"
                       type="text"
+                      value={priceRange}
+                      onChange={(e) => setPriceRange(e.target.value)}
                       placeholder="e.g., ₹20,000 - ₹25,000"
                       className="mt-2"
                       required
@@ -141,6 +219,8 @@ if (loading) {
                     <Input
                       id="location"
                       type="text"
+                      value={preferredLocation}
+                      onChange={(e) => setPreferredLocation(e.target.value)}
                       placeholder="City, State"
                       className="mt-2"
                       required
@@ -152,6 +232,8 @@ if (loading) {
                     <Input
                       id="delivery-date"
                       type="date"
+                      value={deliveryDate}
+                      onChange={(e) => setDeliveryDate(e.target.value)}
                       className="mt-2"
                       required
                     />
@@ -162,6 +244,8 @@ if (loading) {
                     <Input
                       id="contact-phone"
                       type="tel"
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
                       placeholder="+91 XXXXX XXXXX"
                       className="mt-2"
                       required
@@ -173,6 +257,8 @@ if (loading) {
                   <Label htmlFor="additional-requirements">Additional Requirements</Label>
                   <Textarea
                     id="additional-requirements"
+                    value={additional}
+                    onChange={(e) => setAdditional(e.target.value)}
                     placeholder="Specify quality standards, packaging requirements, etc."
                     className="mt-2"
                     rows={4}
@@ -196,7 +282,7 @@ if (loading) {
                 <ShoppingCart className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-primary">5</div>
+                <div className="text-2xl font-bold text-primary">{myRequirements.filter(r => r.status === 'Active').length}</div>
                 <p className="text-xs text-muted-foreground">Currently posted</p>
               </CardContent>
             </Card>
@@ -207,8 +293,8 @@ if (loading) {
                 <UserPlus className="h-4 w-4 text-success" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-success">12</div>
-                <p className="text-xs text-muted-foreground">New inquiries this week</p>
+                <div className="text-2xl font-bold text-success">0</div>
+                <p className="text-xs text-muted-foreground">(Demo) Responses tracked</p>
               </CardContent>
             </Card>
 
@@ -218,50 +304,50 @@ if (loading) {
                 <DollarSign className="h-4 w-4 text-accent" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-accent">2.5h</div>
-                <p className="text-xs text-muted-foreground">Faster than average</p>
+                <div className="text-2xl font-bold text-accent">—</div>
+                <p className="text-xs text-muted-foreground">Demo metric</p>
               </CardContent>
             </Card>
           </div>
 
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle>Recent Requirements</CardTitle>
+              <CardTitle>My Requirements</CardTitle>
               <CardDescription>Your latest crop requirement posts</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {[
-                  { crop: 'Rice', quantity: '100 tons', price: '₹22,000/ton', location: 'Punjab', status: 'Active', responses: 8 },
-                  { crop: 'Wheat', quantity: '75 tons', price: '₹25,000/ton', location: 'Haryana', status: 'Active', responses: 5 },
-                  { crop: 'Cotton', quantity: '50 tons', price: '₹45,000/ton', location: 'Gujarat', status: 'Completed', responses: 12 }
-                ].map((req, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border border-border rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-gradient-growth rounded-lg flex items-center justify-center">
-                        <ShoppingCart className="w-5 h-5 text-white" />
+              {myRequirements.length === 0 ? (
+                <p className="text-sm text-muted-foreground">You haven't posted any requirements yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {myRequirements.map((req) => (
+                    <div key={req.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gradient-growth rounded-lg flex items-center justify-center">
+                          <ShoppingCart className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-medium capitalize">{req.crop} - {req.quantityTons} tons</p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-2">
+                            <DollarSign className="w-3 h-3" />
+                            {req.priceRange}
+                            <MapPin className="w-3 h-3 ml-2" />
+                            {req.location}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{req.crop} - {req.quantity}</p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-2">
-                          <DollarSign className="w-3 h-3" />
-                          {req.price}
-                          <MapPin className="w-3 h-3 ml-2" />
-                          {req.location}
-                        </p>
+                      <div className="flex items-center space-x-3">
+                        <Badge variant={req.status === 'Active' ? 'default' : 'secondary'}>
+                          {req.status}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground">
+                          Posted {new Date(req.postedDateISO).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <Badge variant={req.status === 'Active' ? 'default' : 'secondary'}>
-                        {req.status}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">
-                        {req.responses} responses
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

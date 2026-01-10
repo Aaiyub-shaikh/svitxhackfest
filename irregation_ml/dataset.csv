@@ -1,0 +1,17 @@
+crop,land_size,days_after_sowing,temperature,humidity,rainfall_mm,irrigation_needed
+Rice,2,15,30,70,6,0
+Rice,2,30,32,65,2,1
+Rice,3,45,33,60,0,1
+Rice,1.5,60,29,75,8,0
+Wheat,1,20,28,60,1,1
+Wheat,2,35,27,65,5,0
+Wheat,1.8,50,30,55,0,1
+Wheat,2.5,70,26,72,6,0
+Cotton,2,25,34,55,0,1
+Cotton,3,40,36,50,1,1
+Cotton,1.5,55,33,60,4,0
+Cotton,2.2,65,35,52,0,1
+Maize,1,20,29,68,4,0
+Maize,1.8,30,31,60,1,1
+Maize,2.5,45,32,58,0,1
+Maize,1.2,60,28,70,6,0

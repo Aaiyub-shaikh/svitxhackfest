@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { UserPlus, LogIn, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthFormProps {
   userType: 'farmer' | 'buyer';
@@ -16,6 +17,7 @@ interface AuthFormProps {
 export const AuthForm = ({ userType, title, description }: AuthFormProps) => {
   const { toast } = useToast();
   const { signUp, signIn } = useAuth();
+  const navigate = useNavigate();
   const [isRegistering, setIsRegistering] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -42,7 +44,8 @@ export const AuthForm = ({ userType, title, description }: AuthFormProps) => {
           })
         };
 
-        const { error } = await signUp(email, password, userType, profileData);
+        // Capture the response so we can read the actual assigned user type
+        const { data, error } = await signUp(email, password, userType, profileData);
         
         if (error) {
           toast({
@@ -51,13 +54,23 @@ export const AuthForm = ({ userType, title, description }: AuthFormProps) => {
             variant: "destructive"
           });
         } else {
+          // Get user type from server response - this is the source of truth
+          const serverUserType = data?.user?.user_metadata?.user_type as 'farmer' | 'buyer' | undefined;
+          const actualUserType = serverUserType || userType;
+          
           toast({
             title: "Registration successful!",
-            description: "Please check your email to verify your account.",
+            description: `Welcome to the ${actualUserType} portal`,
           });
+          
+          // Wait for state to update, then navigate and force reload
+          const redirectPath = actualUserType === 'farmer' ? '/farmer' : '/buyer';
+          setTimeout(() => {
+            window.location.href = redirectPath;
+          }, 100);
         }
       } else {
-        const { error } = await signIn(email, password);
+        const { data, error } = await signIn(email, password);
         
         if (error) {
           toast({
@@ -66,10 +79,27 @@ export const AuthForm = ({ userType, title, description }: AuthFormProps) => {
             variant: "destructive"
           });
         } else {
+          // Get user type from server response - this is the source of truth
+          const serverUserType = data?.user?.user_metadata?.user_type as 'farmer' | 'buyer' | undefined;
+
+          // Prefer the portal's expected userType when signing in from a portal page
+          // (this prevents accidental redirects if the backend returns an unexpected role)
+          const actualUserType = userType || serverUserType;
+
+          if (serverUserType && serverUserType !== userType) {
+            console.warn(`AuthForm: server returned user_type='${serverUserType}' but form expected '${userType}'. Using '${actualUserType}' for redirect.`);
+          }
+
           toast({
             title: "Login successful!",
-            description: `Welcome to the ${userType} portal`,
+            description: `Welcome to the ${actualUserType} portal`,
           });
+
+          // Wait for state to update, then navigate and force reload
+          const redirectPath = actualUserType === 'farmer' ? '/farmer' : '/buyer';
+          setTimeout(() => {
+            window.location.href = redirectPath;
+          }, 100);
         }
       }
     } catch (error) {

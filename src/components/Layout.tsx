@@ -1,4 +1,5 @@
 import Navigation from './Navigation';
+import AIChat from './AIChat';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -7,6 +8,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <main className="min-h-[calc(100vh-4rem)]">
         {children}
       </main>
+      <AIChat />
     </div>
   );
 };

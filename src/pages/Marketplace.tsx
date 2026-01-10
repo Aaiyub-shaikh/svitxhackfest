@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -5,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Phone, Mail, MapPin, Calendar, DollarSign, ShoppingCart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getAllRequirements } from '@/services/marketplace';
 
 const Marketplace = () => {
   const { toast } = useToast();
 
-  const buyerRequirements = [
+  const staticRequirements = [
     {
       id: 1,
       buyer: 'AgriCorp Ltd.',
@@ -67,6 +69,26 @@ const Marketplace = () => {
       postedDate: '2024-09-25'
     }
   ];
+
+  const [items, setItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    const dynamic = getAllRequirements().map(r => ({
+      id: r.id,
+      buyer: r.buyerName,
+      crop: r.crop,
+      quantity: `${r.quantityTons} tons`,
+      priceRange: r.priceRange,
+      location: r.location,
+      deadline: r.deliveryDateISO,
+      contact: r.contactPhone,
+      email: r.email || '',
+      description: r.description || '',
+      status: r.status,
+      postedDate: r.postedDateISO,
+    }));
+    setItems([...dynamic, ...staticRequirements]);
+  }, []);
 
   const handleContact = (contact: string, method: 'phone' | 'email') => {
     if (method === 'phone') {
@@ -146,12 +168,12 @@ const Marketplace = () => {
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-foreground">Active Buyer Requirements</h2>
           <Badge variant="secondary" className="text-sm">
-            {buyerRequirements.length} requirements found
+            {items.length} requirements found
           </Badge>
         </div>
 
         <div className="grid grid-cols-1 gap-6">
-          {buyerRequirements.map((requirement) => (
+          {items.map((requirement) => (
             <Card key={requirement.id} className="shadow-card hover:shadow-glow transition-all duration-300">
               <CardHeader>
                 <div className="flex items-start justify-between">

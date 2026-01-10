@@ -18,10 +18,19 @@
     <meta name="twitter:title" content="AgriSmart - Smart Farming Advisory Platform" />
     <meta name="twitter:description" content="AI-driven farming insights, IoT monitoring, and direct market connections for modern agriculture." />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
 
   <body>
     <div id="root"></div>
+    <script>
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/4851355a-993a-4a63-a581-a0e249f20adf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:27',message:'HTML loaded, checking root element',data:{rootExists:!!document.getElementById('root'),documentReady:document.readyState,url:window.location.href},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+    </script>
     <script type="module" src="/src/main.tsx"></script>
+    <script src="/irrigation.js" defer></script>
   </body>
 </html>

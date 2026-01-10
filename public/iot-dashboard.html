@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live IoT Crop Recommendation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        body {
+            background: white;
+            padding: 20px;
+            font-size: 14px;
+        }
+        .sensor-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 10px;
+            flex: 1;
+            min-width: 150px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+        .sensor-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+        .sensor-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .live-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            margin-right: 8px;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .status-badge {
+            font-size: 0.85rem;
+        }
+        .btn-predict {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        .btn-predict:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+        .btn-predict:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Error Message -->
+<div id="ajax-error" class="alert alert-danger mb-4" data-aos="fade-up" style="display:none;">
+    <strong>❌ Error</strong>
+    <br>
+    <small id="error-text"></small>
+</div>
+
+<!-- Auto-Refresh Info -->
+<div class="alert alert-info mb-4" data-aos="fade-up">
+    <div class="d-flex align-items-center">
+        <span class="live-indicator"></span>
+        <strong>Live System Active</strong> - Data automatically updates every 10 seconds from IoT sensors via Firebase
+    </div>
+    <small class="mt-2 d-block">🔗 Connected Sensor: <strong id="sensor-id-display">-</strong></small>
+    <small class="mt-2 d-block">📍 Firebase URL: <strong>https://dht-iot-007-default-rtdb.firebaseio.com/Farm.json</strong></small>
+</div>
+
+<!-- Display Sensor Data -->
+<div class="card shadow-lg p-4 mb-4" data-aos="zoom-in">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="text-success mb-0">📊 Real-Time Sensor Data</h4>
+        <div>
+            <button class="btn btn-sm btn-outline-success me-2" onclick="updateSensorData()">
+                🔄 Refresh Now
+            </button>
+            <button id="predict-btn" class="btn btn-sm btn-predict" onclick="predictCrop()" disabled>
+                🔮 Predict Crop
+            </button>
+        </div>
+    </div>
+    
+    <div class="sensor-grid">
+        <div class="sensor-card" style="background: linear-gradient(135deg, #F5AF19 0%, #F12711 100%);">
+            <div class="sensor-label">🌡️ Temperature</div>
+            <div class="sensor-value" id="temp">-</div>
+            <small>°C</small>
+        </div>
+        
+        <div class="sensor-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="sensor-label">💧 Humidity</div>
+            <div class="sensor-value" id="hum">-</div>
+            <small>%</small>
+        </div>
+        
+        <div class="sensor-card" style="background: linear-gradient(135deg, #8B4513 0%, #CD853F 100%);">
+            <div class="sensor-label">🌱 Soil Moisture</div>
+            <div class="sensor-value" id="soil">-</div>
+            <small>%</small>
+        </div>
+        
+        <div class="sensor-card" style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);">
+            <div class="sensor-label">☀️ Light Intensity</div>
+            <div class="sensor-value" id="light">-</div>
+            <small>lx</small>
+        </div>
+        
+        <div class="sensor-card" style="background: linear-gradient(135deg, #20B2AA 0%, #3CB371 100%);">
+            <div class="sensor-label">pH Level</div>
+            <div class="sensor-value" id="ph">-</div>
+        </div>
+    </div>
+    
+    <small class="mt-3 d-block text-muted">
+        🔗 Sensor: <span id="sensor-id">-</span> 
+        | Last Updated: <span id="last-update">Just now</span>
+    </small>
+</div>
+
+<!-- Display Prediction Result -->
+<div class="card mt-4 shadow-lg p-4" data-aos="zoom-in" id="prediction-section" style="display: none;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="text-success mb-0">✅ Recommended Crop</h3>
+        <span class="badge bg-success status-badge">Predicted</span>
+    </div>
+    
+    <h2 class="text-primary mb-2" style="font-size: 2.5rem;" id="crop-result">-</h2>
+    <small class="text-muted">Confidence: <span id="confidence">0</span>%</small>
+
+    <div id="recommendations-section" class="mt-4" style="display: none;">
+        <div class="alert alert-success">
+            <h5 class="mb-2">🌾 Farming Method</h5>
+            <ul class="mb-0" id="farming-list">
+                <li>Loading...</li>
+            </ul>
+        </div>
+        
+        <div class="alert alert-info">
+            <h5 class="mb-2">💧 Irrigation Techniques</h5>
+            <ul class="mb-0" id="irrigation-list">
+                <li>Loading...</li>
+            </ul>
+        </div>
+        
+        <div class="alert alert-warning">
+            <h5 class="mb-2">❌ What to Avoid</h5>
+            <ul class="mb-0" id="avoid-list">
+                <li>Loading...</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="mt-4 d-grid gap-2">
+        <button class="btn btn-lg btn-success" onclick="downloadReport()">📥 Download Full Report</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script>
+    AOS.init({ duration: 1000 });
+    
+    // Firebase IoT data URL
+    const FIREBASE_URL = 'https://dht-iot-007-default-rtdb.firebaseio.com/Farm.json';
+    
+    // Django API endpoint for predictions
+    const PREDICTION_API_URL = 'http://127.0.0.1:8000/api/live-prediction/';
+    
+    // Current sensor data
+    let currentSensorData = null;
+    
+    // Crop advice dictionary
+    const cropAdvice = {
+        "Rice": {
+            "farming": ["Prepare leveled field", "Transplant healthy seedlings", "Maintain standing water"],
+            "irrigation": ["Maintain 2–5 cm water level", "Drain before harvesting", "Irrigate at regular intervals"],
+            "avoid": ["Avoid overwatering", "Avoid excess fertilizer", "Avoid late transplanting"]
+        },
+        "Wheat": {
+            "farming": ["Sow in rows", "Apply fertilizer in stages", "Use certified seeds"],
+            "irrigation": ["4–5 irrigations at CRI stage", "Irrigate at tillering stage", "Irrigate at flowering stage"],
+            "avoid": ["Avoid waterlogging", "Avoid excess urea", "Avoid late sowing"]
+        },
+        "Maize": {
+            "farming": ["Use raised beds", "Provide sunlight", "Apply organic manure"],
+            "irrigation": ["Irrigate at knee height", "Irrigate at tasseling stages"],
+            "avoid": ["Avoid drought stress", "Avoid dense planting"]
+        },
+        "Potato": {
+            "farming": ["Use certified tubers", "Loose soil preparation", "Earth up after sprouting"],
+            "irrigation": ["Light frequent irrigation", "Stop before harvest"],
+            "avoid": ["Avoid water stagnation", "Avoid late blight disease"]
+        },
+        "Cotton": {
+            "farming": ["Well-drained soil", "Pest-resistant variety", "Balanced nutrients"],
+            "irrigation": ["Irrigate at flowering stage", "Irrigate at boll formation stage"],
+            "avoid": ["Avoid excess water", "Avoid overuse of pesticides"]
+        }
+    };
+    
+    // Default sensor values
+    const DEFAULT_VALUES = {
+        temperature: 25,
+        humidity: 60,
+        soil_moisture: 50,
+        light_intensity: 800,
+        ph: 7.0
+    };
+    
+    function updateLastUpdateTime() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        document.getElementById('last-update').textContent = `${hours}:${minutes}:${seconds}`;
+    }
+    
+    function extractTemperatureHumidity(data) {
+        if (!data || typeof data !== 'object') {
+            return { temp: null, hum: null };
+        }
+        
+        let temp = null;
+        let hum = null;
+        
+        // Try lowercase first
+        if (data.temperature !== undefined && data.humidity !== undefined) {
+            temp = data.temperature;
+            hum = data.humidity;
+        }
+        // Try capitalized
+        else if (data.Temperature !== undefined && data.Humidity !== undefined) {
+            temp = data.Temperature;
+            hum = data.Humidity;
+        }
+        // Try camelCase
+        else if (data.temperature !== undefined && data.Humidity !== undefined) {
+            temp = data.temperature;
+            hum = data.Humidity;
+        }
+        else if (data.Temperature !== undefined && data.humidity !== undefined) {
+            temp = data.Temperature;
+            hum = data.humidity;
+        }
+        // Try with different variations
+        else {
+            // Check all possible keys
+            const tempKeys = ['temperature', 'Temperature', 'temp', 'Temp', 'TEMP'];
+            const humKeys = ['humidity', 'Humidity', 'hum', 'Hum', 'HUM'];
+            
+            for (const key of tempKeys) {
+                if (data[key] !== undefined) {
+                    temp = data[key];
+                    break;
+                }
+            }
+            
+            for (const key of humKeys) {
+                if (data[key] !== undefined) {
+                    hum = data[key];
+                    break;
+                }
+            }
+        }
+        
+        return { temp, hum };
+    }
+    
+    function getSafeFloat(value, defaultValue) {
+        try {
+            if (value === null || value === undefined) return defaultValue;
+            return parseFloat(value) || defaultValue;
+        } catch (e) {
+            return defaultValue;
+        }
+    }
+    
+    function parseFirebaseData(data) {
+        if (!data) {
+            console.log('parseFirebaseData: No data received');
+            return null;
+        }
+        
+        console.log('parseFirebaseData: Received data:', JSON.stringify(data).substring(0, 200));
+        
+        let sensorReading = null;
+        
+        // Check if data is nested under "sensor_data" key
+        if (data.sensor_data && typeof data.sensor_data === 'object') {
+            data = data.sensor_data;
+        }
+        
+        // Check if data is a direct object with sensor readings
+        const { temp, hum } = extractTemperatureHumidity(data);
+        
+        if (temp !== null && hum !== null) {
+            // Handle soil moisture - check multiple possible keys
+            let soilMoisture = data.soil_moisture || data.Soil_Moisture || data.SoilAnalog || data.soilMoisture;
+            if (soilMoisture && typeof soilMoisture === 'number' && soilMoisture > 100) {
+                // Convert ADC value to percentage (0-1024 range)
+                soilMoisture = (soilMoisture / 1024) * 100;
+            }
+            
+            // Handle light intensity
+            let lightIntensity = data.light_intensity || data.Light_Intensity || data.lightIntensity;
+            const lightStatus = data.LightStatus || data.lightStatus || '';
+            if (!lightIntensity) {
+                if (lightStatus && String(lightStatus).toUpperCase().includes('BRIGHT')) {
+                    lightIntensity = 1200;
+                } else if (lightStatus && String(lightStatus).toUpperCase().includes('DARK')) {
+                    lightIntensity = 200;
+                } else {
+                    lightIntensity = DEFAULT_VALUES.light_intensity;
+                }
+            }
+            
+            sensorReading = {
+                sensor_id: data.sensor_id || data.sensorId || 'Farm_IoT',
+                temperature: getSafeFloat(temp, DEFAULT_VALUES.temperature),
+                humidity: getSafeFloat(hum, DEFAULT_VALUES.humidity),
+                soil_moisture: getSafeFloat(soilMoisture, DEFAULT_VALUES.soil_moisture),
+                light_intensity: getSafeFloat(lightIntensity, DEFAULT_VALUES.light_intensity),
+                ph: getSafeFloat(data.ph || data.pH || data.Ph, DEFAULT_VALUES.ph)
+            };
+            
+            console.log('parseFirebaseData: Parsed sensor reading:', sensorReading);
+        } else if (typeof data === 'object') {
+            // Check nested format (multiple sensors or sensor_data structure)
+            for (const key in data) {
+                if (data.hasOwnProperty(key) && typeof data[key] === 'object' && data[key] !== null) {
+                    const nested = extractTemperatureHumidity(data[key]);
+                    if (nested.temp !== null && nested.hum !== null) {
+                        let soilMoisture = data[key].soil_moisture || data[key].Soil_Moisture || data[key].SoilAnalog || data[key].soilMoisture;
+                        if (soilMoisture && typeof soilMoisture === 'number' && soilMoisture > 100) {
+                            soilMoisture = (soilMoisture / 1024) * 100;
+                        }
+                        
+                        let lightIntensity = data[key].light_intensity || data[key].Light_Intensity || data[key].lightIntensity;
+                        const lightStatus = data[key].LightStatus || data[key].lightStatus || '';
+                        if (!lightIntensity) {
+                            if (lightStatus && String(lightStatus).toUpperCase().includes('BRIGHT')) {
+                                lightIntensity = 1200;
+                            } else if (lightStatus && String(lightStatus).toUpperCase().includes('DARK')) {
+                                lightIntensity = 200;
+                            } else {
+                                lightIntensity = DEFAULT_VALUES.light_intensity;
+                            }
+                        }
+                        
+                        sensorReading = {
+                            sensor_id: key,
+                            temperature: getSafeFloat(nested.temp, DEFAULT_VALUES.temperature),
+                            humidity: getSafeFloat(nested.hum, DEFAULT_VALUES.humidity),
+                            soil_moisture: getSafeFloat(soilMoisture, DEFAULT_VALUES.soil_moisture),
+                            light_intensity: getSafeFloat(lightIntensity, DEFAULT_VALUES.light_intensity),
+                            ph: getSafeFloat(data[key].ph || data[key].pH || data[key].Ph, DEFAULT_VALUES.ph)
+                        };
+                        console.log('parseFirebaseData: Parsed nested sensor reading:', sensorReading);
+                        break; // Use first sensor found
+                    }
+                }
+            }
+        }
+        
+        if (!sensorReading) {
+            console.log('parseFirebaseData: Could not parse data, structure:', Object.keys(data || {}));
+        }
+        
+        return sensorReading;
+    }
+    
+    // Fetch sensor data directly from Firebase
+    async function updateSensorData() {
+        try {
+            console.log('Fetching from Firebase:', FIREBASE_URL);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            
+            const response = await fetch(FIREBASE_URL, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: Failed to fetch from Firebase`);
+            }
+            
+            const data = await response.json();
+            console.log('Firebase response received:', data);
+            
+            const sensorReading = parseFirebaseData(data);
+            
+            if (!sensorReading) {
+                console.error('Failed to parse Firebase data. Raw data:', data);
+                throw new Error('No valid sensor data found in Firebase. Please check the data format.');
+            }
+            
+            // Store current sensor data
+            currentSensorData = sensorReading;
+            
+            // Update UI
+            document.getElementById('temp').textContent = sensorReading.temperature.toFixed(1);
+            document.getElementById('hum').textContent = sensorReading.humidity.toFixed(1);
+            document.getElementById('soil').textContent = sensorReading.soil_moisture.toFixed(1);
+            document.getElementById('light').textContent = Math.round(sensorReading.light_intensity);
+            document.getElementById('ph').textContent = sensorReading.ph.toFixed(1);
+            document.getElementById('sensor-id').textContent = sensorReading.sensor_id;
+            document.getElementById('sensor-id-display').textContent = sensorReading.sensor_id;
+            updateLastUpdateTime();
+            
+            // Hide error and enable predict button
+            document.getElementById('ajax-error').style.display = 'none';
+            document.getElementById('predict-btn').disabled = false;
+            
+            console.log('Sensor data updated successfully:', sensorReading);
+            
+        } catch (error) {
+            console.error('Error fetching from Firebase:', error);
+            const ajaxErr = document.getElementById('ajax-error');
+            let errorMsg = 'Unable to connect to Firebase. Please check your internet connection and ensure IoT sensors are sending data to Firebase.';
+            if (error.name === 'AbortError') {
+                errorMsg = 'Connection timeout. Please check your internet connection.';
+            } else if (error.message) {
+                errorMsg = error.message;
+            }
+            ajaxErr.innerHTML = `<strong>⚠️ Connection Error</strong><br><small>${errorMsg}</small>`;
+            ajaxErr.style.display = 'block';
+            document.getElementById('predict-btn').disabled = true;
+        }
+    }
+    
+    // Predict crop using Django API
+    async function predictCrop() {
+        if (!currentSensorData) {
+            alert('Please wait for sensor data to load first.');
+            return;
+        }
+        
+        const predictBtn = document.getElementById('predict-btn');
+        const originalText = predictBtn.innerHTML;
+        predictBtn.disabled = true;
+        predictBtn.innerHTML = '⏳ Predicting...';
+        
+        try {
+            console.log('Fetching prediction from:', PREDICTION_API_URL);
+            const response = await fetch(PREDICTION_API_URL, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                },
+            });
+            
+            console.log('Prediction response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Prediction API error response:', errorText);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            console.log('Prediction data received:', data);
+            
+            if (data.status === 'success' && data.prediction) {
+                const crop = data.prediction.crop;
+                const confidence = data.prediction.confidence || 0;
+                
+                // Check if crop prediction is valid
+                if (!crop || crop === 'None' || crop === null) {
+                    throw new Error(data.message || 'ML model did not return a valid crop prediction. Please check if the model is loaded on the server.');
+                }
+                
+                // Update prediction display
+                document.getElementById('crop-result').textContent = crop;
+                document.getElementById('confidence').textContent = (confidence * 100).toFixed(1);
+                
+                const advice = cropAdvice[crop];
+                if (advice) {
+                    document.getElementById('farming-list').innerHTML = advice.farming.map(item => `<li>${item}</li>`).join('');
+                    document.getElementById('irrigation-list').innerHTML = advice.irrigation.map(item => `<li>${item}</li>`).join('');
+                    document.getElementById('avoid-list').innerHTML = advice.avoid.map(item => `<li>${item}</li>`).join('');
+                    document.getElementById('recommendations-section').style.display = 'block';
+                } else {
+                    // Hide recommendations if no advice available
+                    document.getElementById('recommendations-section').style.display = 'none';
+                }
+                document.getElementById('prediction-section').style.display = 'block';
+                
+                // Hide error
+                document.getElementById('ajax-error').style.display = 'none';
+            } else {
+                throw new Error(data.message || 'Prediction unavailable');
+            }
+        } catch (error) {
+            console.error('Error predicting crop:', error);
+            const ajaxErr = document.getElementById('ajax-error');
+            let errorMsg = 'Unable to get prediction. Make sure Django server is running on port 8000.';
+            
+            if (error.message) {
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    errorMsg = 'Cannot connect to Django server. Please ensure the server is running on http://127.0.0.1:8000';
+                } else if (error.message.includes('HTTP')) {
+                    errorMsg = `Server error: ${error.message}. Check Django server logs.`;
+                } else {
+                    errorMsg = error.message;
+                }
+            }
+            
+            ajaxErr.innerHTML = `<strong>⚠️ Prediction Error</strong><br><small>${errorMsg}</small>`;
+            ajaxErr.style.display = 'block';
+        } finally {
+            predictBtn.disabled = false;
+            predictBtn.innerHTML = originalText;
+        }
+    }
+    
+    // Initial load
+    updateSensorData();
+    
+    // Update every 10 seconds
+    setInterval(() => {
+        updateSensorData();
+    }, 10000);
+    
+    function downloadReport() {
+        const crop = document.getElementById('crop-result').textContent;
+        if (crop === '-') {
+            alert('No prediction available to download.');
+            return;
+        }
+        
+        const report = `
+CROP RECOMMENDATION REPORT
+==========================
+Recommended Crop: ${crop}
+Generated: ${new Date().toLocaleString()}
+
+SENSOR DATA:
+- Temperature: ${document.getElementById('temp').textContent}°C
+- Humidity: ${document.getElementById('hum').textContent}%
+- Soil Moisture: ${document.getElementById('soil').textContent}%
+- Light Intensity: ${document.getElementById('light').textContent} lx
+- pH Level: ${document.getElementById('ph').textContent}
+
+RECOMMENDATIONS:
+${Array.from(document.getElementById('farming-list').children).map(li => '- ' + li.textContent).join('\n')}
+
+${Array.from(document.getElementById('irrigation-list').children).map(li => '- ' + li.textContent).join('\n')}
+
+${Array.from(document.getElementById('avoid-list').children).map(li => '- ' + li.textContent).join('\n')}
+        `;
+        
+        const blob = new Blob([report], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `crop_report_${new Date().getTime()}.txt`;
+        a.click();
+    }
+</script>
+
+</body>
+</html>

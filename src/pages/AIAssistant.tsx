@@ -30,6 +30,8 @@ const AIAssistant = () => {
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   const languages = [
     { value: 'english', label: 'English' },
@@ -41,6 +43,17 @@ const AIAssistant = () => {
     { value: 'telugu', label: 'తెలుగు (Telugu)' },
     { value: 'bengali', label: 'বাংলা (Bengali)' }
   ];
+
+  const langToBCP47: Record<string, string> = {
+    english: 'en-IN',
+    hindi: 'hi-IN',
+    punjabi: 'pa-IN',
+    gujarati: 'gu-IN',
+    marathi: 'mr-IN',
+    tamil: 'ta-IN',
+    telugu: 'te-IN',
+    bengali: 'bn-IN',
+  };
 
   const quickActions = [
     { label: 'Weather Forecast', action: 'What\'s the weather forecast for my area?' },
@@ -58,6 +71,18 @@ const AIAssistant = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Load available voices for TTS
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      const loadVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        setAvailableVoices(voices);
+      };
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, []);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
@@ -111,30 +136,54 @@ const AIAssistant = () => {
   };
 
   const toggleListening = () => {
-    setIsListening(!isListening);
     if (!isListening) {
-      toast({
-        title: "Voice Input Active",
-        description: "Speak now... (Voice recognition simulated)",
-      });
-      // Simulate voice input after 3 seconds
-      setTimeout(() => {
-        setInputMessage("What's the best time to plant wheat?");
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        toast({ title: 'Voice not supported', description: 'Your browser does not support Speech Recognition', variant: 'destructive' });
+        return;
+      }
+      const recog = new SpeechRecognition();
+      recognitionRef.current = recog;
+      recog.lang = langToBCP47[selectedLanguage] || 'en-IN';
+      recog.interimResults = false;
+      recog.maxAlternatives = 1;
+      recog.onresult = (e: any) => {
+        const transcript = e.results?.[0]?.[0]?.transcript || '';
+        setInputMessage(transcript);
+      };
+      recog.onend = () => setIsListening(false);
+      recog.onerror = () => setIsListening(false);
+      try {
+        recog.start();
+        setIsListening(true);
+        toast({ title: 'Voice Input Active', description: 'Speak now...' });
+      } catch (err) {
+        console.error(err);
+        toast({ title: 'Failed to start voice input', variant: 'destructive' });
         setIsListening(false);
-      }, 3000);
+      }
     } else {
-      toast({
-        title: "Voice Input Stopped",
-        description: "Voice recording stopped",
-      });
+      try {
+        recognitionRef.current?.stop?.();
+      } catch {}
+      setIsListening(false);
+      toast({ title: 'Voice Input Stopped', description: 'Stopped listening' });
     }
   };
 
   const speakMessage = (message: string) => {
-    toast({
-      title: "Text-to-Speech",
-      description: "Speaking message... (TTS simulated)",
-    });
+    if (!('speechSynthesis' in window)) {
+      toast({ title: 'TTS not supported', description: 'Your browser does not support Text-to-Speech', variant: 'destructive' });
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(message);
+    const lang = langToBCP47[selectedLanguage] || 'en-IN';
+    utter.lang = lang;
+    // Prefer a voice matching the selected language
+    const match = availableVoices.find(v => v.lang?.toLowerCase().startsWith(lang.toLowerCase()));
+    if (match) utter.voice = match;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
   };
 
   return (

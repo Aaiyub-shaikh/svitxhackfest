@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Leaf, Users, ShoppingCart, Bot, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -30,10 +30,11 @@ const Navigation = () => {
     }
   };
 
-  // Define navigation items based on authentication state
+  // Define navigation items based on authentication state and user role
   const getNavigationItems = () => {
+    // Home always points to "/" (auth selection page) for all users
     const baseItems = [{ name: 'Home', href: '/', icon: Leaf }];
-    
+
     if (!user) {
       // Show both portals for unauthenticated users (they'll see login forms)
       return [
@@ -42,22 +43,19 @@ const Navigation = () => {
         { name: 'Buyer Portal', href: '/buyer', icon: Users }
       ];
     }
-    
-    // Authenticated user - show appropriate portal and shared features
+
+    // Authenticated user - show only Home and their specific portal
     const authenticatedItems = [...baseItems];
-    
+
+    // Role-based portal visibility: show only the portal matching user's role
     if (userType === 'farmer') {
-      authenticatedItems.push({ name: 'Farmer Dashboard', href: '/farmer', icon: Leaf });
+      authenticatedItems.push({ name: 'Farmer Portal', href: '/farmer', icon: Leaf });
+      // Buyer Portal is hidden for farmers
     } else if (userType === 'buyer') {
-      authenticatedItems.push({ name: 'Buyer Dashboard', href: '/buyer', icon: Users });
+      authenticatedItems.push({ name: 'Buyer Portal', href: '/buyer', icon: Users });
+      // Farmer Portal is hidden for buyers
     }
-    
-    // Add shared authenticated features
-    authenticatedItems.push(
-      { name: 'Marketplace', href: '/marketplace', icon: ShoppingCart },
-      { name: 'AI Assistant', href: '/assistant', icon: Bot }
-    );
-    
+
     return authenticatedItems;
   };
 

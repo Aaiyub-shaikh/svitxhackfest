@@ -65,6 +65,82 @@ async def load_model():
         raise RuntimeError(f"Model file not found at: {MODEL_PATH}")
     MODEL = tf.keras.models.load_model(MODEL_PATH)
 
+# Load irrigation scikit-learn model & crop encoder (joblib)
+IRR_MODEL = None
+CROP_ENCODER = None
+IRR_MODEL_PATH = os.path.join(os.path.abspath(os.path.join(CURRENT_DIR, '..')), 'irregation_ml', 'irrigation_model.pkl')
+CROP_ENCODER_PATH = os.path.join(os.path.abspath(os.path.join(CURRENT_DIR, '..')), 'irregation_ml', 'crop_encoder.pkl')
+
+@app.on_event("startup")
+async def load_irrigation_model():
+    global IRR_MODEL, CROP_ENCODER
+    try:
+        import joblib as _joblib
+        if os.path.exists(IRR_MODEL_PATH):
+            IRR_MODEL = _joblib.load(IRR_MODEL_PATH)
+        if os.path.exists(CROP_ENCODER_PATH):
+            CROP_ENCODER = _joblib.load(CROP_ENCODER_PATH)
+    except Exception as e:
+        # Do not crash app; log the issue
+        print(f"Warning: failed to load irrigation model or encoder: {e}")
+
+
+@app.post("/irrigation/predict")
+async def predict_irrigation_api(payload: dict):
+    """Predict irrigation need.
+
+    Expects JSON with keys: crop (str), land_size (number), sowing_date (YYYY-MM-DD),
+    temperature (C), humidity (%), rainfall_mm (number)
+    """
+    if IRR_MODEL is None or CROP_ENCODER is None:
+        return {"error": "Irrigation model not available"}
+
+    try:
+        crop = payload.get('crop')
+        land_size = float(payload.get('land_size'))
+        sowing_date = payload.get('sowing_date')
+        temp = float(payload.get('temperature'))
+        humidity = float(payload.get('humidity'))
+        rainfall_mm = float(payload.get('rainfall_mm'))
+
+        # compute days after sowing
+        from datetime import datetime
+        try:
+            sdate = datetime.fromisoformat(sowing_date)
+            days_after = (datetime.utcnow() - sdate).days
+            if days_after < 0: days_after = 0
+        except Exception:
+            days_after = 0
+
+        # encode crop
+        try:
+            crop_enc = int(CROP_ENCODER.transform([crop])[0])
+        except Exception:
+            # unknown crop -> attempt to map lowercase match
+            crop_enc = 0
+
+        X = [[crop_enc, land_size, days_after, temp, humidity, rainfall_mm]]
+        pred = IRR_MODEL.predict(X)
+        irr_needed = bool(int(pred[0]))
+
+        # simple heuristics for water quantity and time
+        water_quantity = f"{Mathify(land_size)} mm" if irr_needed else "0 mm"
+        best_time = "Early Morning (5–8 AM)" if irr_needed else "N/A"
+
+        return {"irrigation_needed": irr_needed, "water_quantity": water_quantity, "best_time": best_time}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# small helper to choose water mm per acre
+def Mathify(acres: float) -> int:
+    # 2 mm per acre baseline rounded
+    try:
+        val = round(2 * float(acres))
+        return val if val > 0 else 2
+    except Exception:
+        return 2
+
 
 @app.get("/health")
 async def health():
