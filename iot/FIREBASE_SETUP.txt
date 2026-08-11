@@ -1,0 +1,52 @@
+Firebase Integration Setup
+===========================
+
+1. Install required packages:
+   pip install -r requirements.txt
+
+2. Create Firebase Project:
+   - Go to https://console.firebase.google.com/
+   - Create a new project
+   - Enable Realtime Database
+   - Enable Storage
+   - Go to Project Settings > Service Accounts
+   - Click "Generate new private key"
+   - Save as serviceAccountKey.json in project root
+
+3. Update firebase_config.py:
+   - Replace 'YOUR_FIREBASE_REALTIME_DATABASE_URL' with your Firebase DB URL
+   - Replace 'YOUR_FIREBASE_STORAGE_BUCKET' with your Storage bucket
+
+4. Add to Django URLs:
+   - Add the new endpoints to urls.py
+
+5. Train model with Firebase data:
+   python ml_model/train_model_firebase.py
+
+6. Expected Firebase Database Structure:
+   
+   sensor_data/
+     sensor_1/
+       temperature: 25.5
+       humidity: 60
+       soil_moisture: 45
+       light_intensity: 800
+       ph: 7.2
+       timestamp: ...
+       crop: "Rice" (optional, for training data)
+
+7. IoT Device Integration:
+   - Use the code in IoT_Device_Code.py for your device
+   - Send POST requests to /api/receive-sensor-data/
+
+8. Test the API:
+   curl -X POST http://localhost:8000/api/receive-sensor-data/ \
+   -H "Content-Type: application/json" \
+   -d '{
+     "sensor_id": "sensor_1",
+     "temperature": 25.5,
+     "humidity": 60,
+     "soil_moisture": 45,
+     "light_intensity": 800,
+     "ph": 7.2
+   }'

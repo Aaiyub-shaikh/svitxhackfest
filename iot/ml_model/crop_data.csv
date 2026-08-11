@@ -1,0 +1,6 @@
+temperature,humidity,soil_moisture,ph,crop
+25,80,60,6.5,Rice
+30,60,40,7.0,Wheat
+28,70,55,6.8,Maize
+22,65,45,6.0,Potato
+35,50,30,7.5,Cotton

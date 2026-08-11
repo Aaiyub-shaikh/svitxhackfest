@@ -1,0 +1,28 @@
+{
+  "sensor_data": {
+    "sensor_1": {
+      "temperature": 25.5,
+      "humidity": 60,
+      "soil_moisture": 45,
+      "light_intensity": 800,
+      "ph": 7.2,
+      "timestamp": 1704816000000
+    },
+    "sensor_2": {
+      "temperature": 28.3,
+      "humidity": 55,
+      "soil_moisture": 50,
+      "light_intensity": 850,
+      "ph": 7.0,
+      "timestamp": 1704816060000
+    },
+    "sensor_3": {
+      "temperature": 22.1,
+      "humidity": 65,
+      "soil_moisture": 40,
+      "light_intensity": 750,
+      "ph": 7.5,
+      "timestamp": 1704816120000
+    }
+  }
+}
