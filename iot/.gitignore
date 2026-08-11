@@ -1,0 +1,132 @@
+# ==========================================
+# Python
+# ==========================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ==========================================
+# Virtual Environment
+# ==========================================
+
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ==========================================
+# Environment Variables / Secrets
+# ==========================================
+
+.env
+.env.local
+.env.development
+.env.production
+
+# Firebase / Google Cloud secret files
+firebase-service-account.json
+service-account.json
+*-firebase-adminsdk-*.json
+
+# Keep example configuration files
+!.env.example
+!FIREBASE_EXAMPLE_DATA.json
+
+# ==========================================
+# Django
+# ==========================================
+
+*.log
+
+# Local SQLite database
+*.sqlite3
+*.sqlite
+
+# Django migrations cache
+**/__pycache__/
+
+# ==========================================
+# Django Static / Media Generated Files
+# ==========================================
+
+media/
+staticfiles/
+
+# ==========================================
+# Machine Learning Generated Files
+# ==========================================
+
+# Training outputs / temporary files
+ml_model/__pycache__/
+ml_model/output/
+ml_model/outputs/
+ml_model/checkpoints/
+ml_model/logs/
+
+# ==========================================
+# Jupyter Notebook
+# ==========================================
+
+.ipynb_checkpoints/
+
+# ==========================================
+# VS Code
+# ==========================================
+
+.vscode/
+
+# ==========================================
+# PyCharm / IntelliJ
+# ==========================================
+
+.idea/
+*.iml
+
+# ==========================================
+# OS Generated Files
+# ==========================================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==========================================
+# Temporary Files
+# ==========================================
+
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+# ==========================================
+# Build / Distribution
+# ==========================================
+
+build/
+dist/
+*.egg-info/
+
+# ==========================================
+# Coverage
+# ==========================================
+
+.coverage
+htmlcov/
+coverage.xml
+
+# ==========================================
+# Test Results
+# ==========================================
+
+test-results/
