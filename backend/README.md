@@ -1,6 +1,16 @@
 
 # 🌱 AgriSmart Backend API
 
+![Node.js](https://img.shields.io/badge/Node.js-20.x-339933?style=for-the-badge)
+![Express.js](https://img.shields.io/badge/Express.js-REST_API-000000?style=for-the-badge)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=for-the-badge)
+![JWT](https://img.shields.io/badge/JWT-Authentication-000000?style=for-the-badge)
+![bcrypt](https://img.shields.io/badge/bcrypt-Password_Hashing-338?style=for-the-badge)
+![dotenv](https://img.shields.io/badge/dotenv-Environment_Config-ECD53F?style=for-the-badge)
+![CORS](https://img.shields.io/badge/CORS-Cross--Origin-6C757D?style=for-the-badge)
+![AI Assistant](https://img.shields.io/badge/AI-Agricultural_Assistant-8A2BE2?style=for-the-badge)
+![SMS](https://img.shields.io/badge/SMS-Notifications-25D366?style=for-the-badge)
+
 The **Backend API** is the backend service for the **AgriSmart** platform. It provides APIs for farmer authentication, agricultural assistance, irrigation management, buyer needs, SMS notifications, and database operations.
 
 The backend is built using **Node.js, Express.js, PostgreSQL, and JWT authentication**.
