@@ -24,6 +24,7 @@ dist-ssr
 *.sw?
 # Python virtual environment
 venv/
+.env
 env/
 weather/venv/
 

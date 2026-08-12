@@ -6,7 +6,7 @@ import asyncio
 from edge_tts import Communicate
 
 # ---------- API KEY ----------
-client = Groq(api_key="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")
+client = Groq(api_key=process.env.groq_api_key)
 
 # ---------- LANGUAGE MAPPING ----------
 languages = {
