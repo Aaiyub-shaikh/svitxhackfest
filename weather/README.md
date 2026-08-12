@@ -1,72 +1,104 @@
-# Weather microservice (Django)
+# 🌦️ Weather Forecast Service
 
-This is a small, standalone Django microservice providing a single weather endpoint used by the Smart Farming platform.
+![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge\&logo=python\&logoColor=white)
+![Django](https://img.shields.io/badge/Django-4.2%2B-092E20?style=for-the-badge\&logo=django\&logoColor=white)
+![Django REST Framework](https://img.shields.io/badge/DRF-3.14%2B-A30000?style=for-the-badge)
+![OpenWeather](https://img.shields.io/badge/OpenWeather-API-orange?style=for-the-badge)
 
-Folder structure
-```
+A standalone **Django-based weather microservice** for the **AgriSmart** platform. It fetches weather data using latitude and longitude and provides a simple JSON response for the irrigation and farming features.
+
+## 📁 Project Structure
+
+```text
 weather/
-├─ manage.py
-├─ requirements.txt
-├─ .env.example
-├─ weather_project/
-│  ├─ __init__.py
-│  ├─ settings.py
-│  ├─ urls.py
-│  ├─ wsgi.py
-│  └─ asgi.py
-└─ forecast/
-   ├─ __init__.py
-   ├─ apps.py
-   ├─ urls.py
-   └─ views.py
+├── forecast/
+│   ├── apps.py
+│   ├── urls.py
+│   ├── views.py
+│   └── tests.py
+├── weather_project/
+│   ├── settings.py
+│   ├── urls.py
+│   ├── asgi.py
+│   └── wsgi.py
+├── .env.example
+├── .gitignore
+├── db.sqlite3
+├── manage.py
+└── requirements.txt
 ```
 
-API
-- GET /api/weather/?lat=<latitude>&lon=<longitude>
-- Returns JSON with exactly these keys:
-  - `temperature` (°C)
-  - `humidity` (%)
-  - `rain_probability` (%) — integer between 0 and 100
-  - `short_forecast` — string like `2026-01-09: 24.5°C`
+## 🚀 Features
 
-Response examples
-- Successful:
-  {
-    "temperature": 24.5,
-    "humidity": 82,
-    "rain_probability": 20,
-    "short_forecast": "2026-01-09: 25.1°C"
-  }
+* 🌡️ Temperature information
+* 💧 Humidity information
+* 🌧️ Rain probability
+* 📅 Short weather forecast
+* 🌍 Location-based weather using latitude and longitude
+* 🔐 Environment-based API key configuration
+* 🔗 CORS support for AgriSmart frontend/backend integration
 
-Error handling
-- Missing or invalid `lat`/`lon` → 400 with `{'error': ...}`
-- External API failure → 502 with `{'error': ..., 'detail': ...}`
-- Missing OpenWeather API key → 500 with `{'error': ...}`
+## 🔌 API Endpoint
 
-Security & CORS
-- The service uses `django-cors-headers`. By default the `.env` flag `CORS_ALLOWED_ORIGINS` can be `*` (development) or comma-separated origins for production.
-- Keep your `OPENWEATHER_API_KEY` in `.env` and **never** commit secrets to git.
+```http
+GET /api/weather/?lat=<latitude>&lon=<longitude>
+```
 
-Run locally (quickstart)
-1. Copy `.env.example` to `.env` and set `OPENWEATHER_API_KEY`:
-   cp .env.example .env   # (Windows: copy)
-   EDIT `.env` and put your key.
+### Example
 
-2. Create a virtual environment and install deps:
-   python -m venv .venv
-   .\.venv\Scripts\activate
-   pip install -r requirements.txt
+```http
+GET http://localhost:8001/api/weather/?lat=28.7041&lon=77.1025
+```
 
-3. Run migrations (the service uses sqlite by default for Django admin compatibility):
-   python manage.py migrate
+### Response
 
-4. Start server (default port 8000):
-   python manage.py runserver 0.0.0.0:8001
+```json
+{
+  "temperature": 24.5,
+  "humidity": 82,
+  "rain_probability": 20,
+  "short_forecast": "2026-01-09: 25.1°C"
+}
+```
 
-5. Use the endpoint:
-   GET http://localhost:8001/api/weather/?lat=28.7041&lon=77.1025
+## ⚙️ Setup
 
-Notes
-- The Django service is intentionally independent: all files live inside `weather/` and it exposes only weather-related endpoints.
-- The Node.js backend or frontend can call this service directly (make sure CORS allows the origin).
-- For production, use an env management system (e.g., secrets in your hosting, not .env). Configure `ALLOWED_HOSTS`, remove `DEBUG=True`, and set strict `CORS_ALLOWED_ORIGINS`.
+```bash
+python -m venv .venv
+```
+
+### Windows
+
+```bash
+.venv\Scripts\activate
+```
+
+### Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Create `.env` from `.env.example` and add your OpenWeather API key:
+
+```env
+OPENWEATHER_API_KEY=your_api_key
+```
+
+Run migrations:
+
+```bash
+python manage.py migrate
+```
+
+Start the server:
+
+```bash
+python manage.py runserver 0.0.0.0:8001
+```
+
+The weather service will be available at:
+
+```text
+http://localhost:8001
+```
