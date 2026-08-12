@@ -1,6 +1,0 @@
-run the backend as 'npm start'
-run the streamlit app for disease as 'streamlit run main.py'
-run the main front end as 'npm run dev'
-run weather forecasting as 'python manage.py runserver'
-run irrigation model as 'python irrigation_api.py'
-run iot model as 'python manage.py runserver'
